@@ -1,37 +1,76 @@
-// SIMULADOR DE ESP32
-// Esse script gera valores aleatórios e envia para o seu servidor.
+const http = require('http');
 
-// Função para gerar número aleatório entre dois valores (min e max)
-function gerarAleatorio(min, max) {
-    return (Math.random() * (max - min) + min).toFixed(2); // toFixed(2) deixa com 2 casas decimais
+// CONFIGURAÇÃO DOS SENSORES
+// 'passo' agora representa a VARIAÇÃO MÁXIMA que pode acontecer numa leitura.
+let sensores = {
+    temperatura: { valor: 25.0, passo: 0.5, min: 20, max: 35, direcao: 1 }, 
+    umidade:     { valor: 60.0, passo: 2.5, min: 40, max: 90, direcao: 1 },
+    metano:      { valor: 300,  passo: 15.0, min: 100, max: 600, direcao: 1 },
+    ph:          { valor: 7.0,  passo: 0.1, min: 6.0, max: 8.0, direcao: 1 },
+    pressao:     { valor: 1013, passo: 1.5, min: 1000, max: 1025, direcao: 1 }
+};
+
+// Função que faz o valor subir/descer com velocidade aleatória
+function atualizarCiclo(sensor) {
+    // A MUDANÇA ESTÁ AQUI:
+    // Sorteamos um número entre 0 e o valor do 'passo' configurado acima.
+    // Ex: Se o passo é 0.5, a variação pode ser 0.1, 0.49, 0.0, 0.3...
+    let variacaoAleatoria = Math.random() * sensor.passo;
+    
+    if (sensor.direcao === 1) {
+        sensor.valor += variacaoAleatoria; // Sobe um valor aleatório
+    } else {
+        sensor.valor -= variacaoAleatoria; // Desce um valor aleatório
+    }
+
+    // Lógica de bater no Teto e inverter
+    if (sensor.valor >= sensor.max) {
+        sensor.valor = sensor.max;
+        sensor.direcao = -1; // Começa a descer
+    }
+
+    // Lógica de bater no Chão e inverter
+    if (sensor.valor <= sensor.min) {
+        sensor.valor = sensor.min;
+        sensor.direcao = 1; // Começa a subir
+    }
+
+    return parseFloat(sensor.valor.toFixed(2));
 }
 
-async function enviarDadosFalsos() {
-    // 1. Criamos os dados fictícios
-    const dados = {
-        temperatura: gerarAleatorio(20, 35), // Entre 20 e 35 graus
-        umidade: gerarAleatorio(40, 80),     // Entre 40% e 80%
-        metano: gerarAleatorio(100, 500),    // Níveis variados
-        ph: gerarAleatorio(6.5, 8.0),        // PH próximo do neutro
-        pressao: gerarAleatorio(1000, 1020)  // Pressão atmosférica padrão
+function enviarDadosCiclicos() {
+    const dadosParaEnvio = {
+        temperatura: atualizarCiclo(sensores.temperatura),
+        umidade: atualizarCiclo(sensores.umidade),
+        metano: atualizarCiclo(sensores.metano),
+        ph: atualizarCiclo(sensores.ph),
+        pressao: atualizarCiclo(sensores.pressao)
     };
 
-    try {
-        // 2. Enviamos para o servidor (igual fizemos no teste do console)
-        const response = await fetch('http://localhost:3000/api/sensores', {
-            method: 'POST',
-            headers: { 'Content-Type': 'application/json' },
-            body: JSON.stringify(dados)
-        });
+    const dadosJSON = JSON.stringify(dadosParaEnvio);
 
-        const respostaServer = await response.json();
-        console.log(`[ENVIADO] Temp: ${dados.temperatura}°C | Status: ${respostaServer.message}`);
+    const options = {
+        hostname: 'localhost',
+        port: 3000,
+        path: '/api/sensores',
+        method: 'POST',
+        headers: {
+            'Content-Type': 'application/json',
+            'Content-Length': dadosJSON.length
+        }
+    };
 
-    } catch (error) {
-        console.error('Erro ao conectar com o servidor. O server.js está rodando?');
-    }
+    const req = http.request(options, (res) => {
+        if (res.statusCode === 200) {
+            const setaTemp = sensores.temperatura.direcao > 0 ? "subindo ↑" : "caindo ↓";
+            console.log(`[SIMULADOR] Temp: ${dadosParaEnvio.temperatura}°C (${setaTemp})`);
+        }
+    });
+
+    req.on('error', (e) => console.error('Erro de conexão!'));
+    req.write(dadosJSON);
+    req.end();
 }
 
-// 3. Loop infinito: Envia dados a cada 2 segundos (2000ms)
-console.log("--- Iniciando Simulação do ESP32 ---");
-setInterval(enviarDadosFalsos, 2000);
+console.log("--- Iniciando Simulação com Variação Aleatória ---");
+setInterval(enviarDadosCiclicos, 500);
