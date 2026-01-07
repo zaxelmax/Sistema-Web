@@ -1,20 +1,86 @@
 <!DOCTYPE html>
-<html lang="pt-BR">
+<html lang="pt-br">
 <head>
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
-    <title>sistemaweb</title>
-    <link rel="stylesheet" href="./styles(CSS)/style.css">
-    <link rel="stylesheet" href="./styles(CSS)/mobile.css">
-     
+    <title>Monitoramento ESP32</title>
+    <script src="bootstrap-5.3.8-dist/bootstrap.bundle.min.js"></script> 
+
+    <script src="scripts(Js)/script.js"></script>
+    
+    <script src="https://cdn.jsdelivr.net/npm/chart.js"></script>
+
+    <style>
+        /* CSS Básico para organizar a tela */
+        body {
+            font-family: Arial, sans-serif; /* Define a fonte do texto */
+            background-color: #f4f4f9;      /* Cor de fundo cinza claro */
+            text-align: center;             /* Centraliza tudo */
+            padding: 20px;                  /* Espaçamento interno nas bordas */
+        }
+
+        .container-grafico {
+            width: 80%;                     /* O gráfico ocupará 80% da tela */
+            margin: auto;                   /* Centraliza o bloco na tela */
+            background: white;              /* Fundo branco atrás do gráfico */
+            padding: 20px;                  /* Espaço entre a borda e o gráfico */
+            border-radius: 10px;            /* Arredonda as pontas */
+            box-shadow: 0 0 10px rgba(0,0,0,0.1); /* Sombra suave */
+        }
+    </style>
 </head>
 <body>
-    <header>
-        <nav>
 
-        </nav> 
-    </header>
-    <main></main>
-    <footer></footer>
+    <h1>Monitoramento em Tempo Real</h1>
+    
+    <div class="container-grafico">
+        <canvas id="meuGrafico"></canvas>
+    </div>
+
+    <script>
+       // 1. Configuração dos dados iniciais (o esqueleto do gráfico)
+    const dadosIniciais = {
+        labels: [], // Aqui entrarão os horários (Eixo X)
+        datasets: [
+            {
+                label: 'Temperatura (°C)', // Nome da linha
+                borderColor: 'red',        // Cor da linha
+                backgroundColor: 'red',    // Cor da bolinha do ponto
+                data: [],                  // Aqui entrarão os números da temperatura
+                tension: 0.4               // Deixa a linha mais curva (suave)
+            },
+            // AQUI É SUA VEZ: Você precisará criar os outros 4 objetos abaixo
+        ]
+    };
+
+    // 2. Configuração do Layout do Gráfico
+    const configGrafico = {
+        type: 'line',             // Tipo do gráfico: Linha
+        data: dadosIniciais,      // Usa os dados que definimos acima
+        options: {
+            responsive: true,     // Se adapta ao tamanho da tela
+            interaction: {
+                mode: 'index',    // Ao passar o mouse, mostra dados de todas as linhas
+                intersect: false,
+            },
+            scales: {
+                x: {
+                    title: { display: true, text: 'Horário de Leitura' }
+                },
+                y: {
+                    title: { display: true, text: 'Valores' },
+                    beginAtZero: true // O eixo Y começa no 0
+                }
+            }
+        }
+    };
+
+    // 3. Renderizando (Desenhando) o gráfico na tela
+    const meuGrafico = new Chart(
+        document.getElementById('meuGrafico'),
+        configGrafico
+    );
+    </script>
+
 </body>
 </html>
